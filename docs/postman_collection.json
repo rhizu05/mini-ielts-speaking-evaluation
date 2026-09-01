@@ -1,0 +1,167 @@
+{
+  "info": {
+    "name": "Mini IELTS Speaking Evaluation API",
+    "description": "Backend untuk latihan IELTS Speaking: daftar pertanyaan, submit jawaban, dan evaluasi Gemini. Base URL: {{baseUrl}}",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Get Questions",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/questions",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "questions"]
+        },
+        "description": "Mengembalikan daftar pertanyaan speaking (Part 1/2/3 + topic)."
+      }
+    },
+    {
+      "name": "Submit Speaking Answer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"question_id\": 1,\n  \"answer_text\": \"My hometown is Bandung. I like it because the weather is cool and the people are friendly.\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/speaking/submit",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "speaking", "submit"]
+        },
+        "description": "Submit jawaban teks. Divalidasi (question_id wajib ada, answer_text 20-2000 karakter), disimpan, lalu dievaluasi Gemini."
+      }
+    },
+    {
+      "name": "Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "register"]
+        },
+        "description": "Membuat akun baru dan mengembalikan token."
+      }
+    },
+    {
+      "name": "Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "login"]
+        },
+        "description": "Login dan mengembalikan token. Simpan token ke variable 'token'."
+      }
+    },
+    {
+      "name": "Logout",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/logout",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "logout"]
+        },
+        "description": "Menghapus token aktif. Memerlukan header Bearer."
+      }
+    },
+    {
+      "name": "Get Current User",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/user",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "user"]
+        },
+        "description": "Mengembalikan data user yang sedang login."
+      }
+    },
+    {
+      "name": "Get Attempts",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/attempts",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "attempts"]
+        },
+        "description": "Mengembalikan riwayat attempt milik user yang login."
+      }
+    }
+  ]
+}
