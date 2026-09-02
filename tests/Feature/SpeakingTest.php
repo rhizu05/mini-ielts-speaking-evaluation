@@ -71,4 +71,172 @@ class SpeakingTest extends TestCase
         $response->assertUnprocessable()
             ->assertJsonValidationErrors(['question_id', 'answer_text']);
     }
+
+    public function test_submit_requires_question_id(): void
+    {
+        $response = $this->postJson('/api/speaking/submit', [
+            'answer_text' => 'This is a valid answer with enough characters.',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['question_id']);
+    }
+
+    public function test_submit_requires_answer_text(): void
+    {
+        $question = Question::create([
+            'part' => 1,
+            'topic' => 'Hometown',
+            'question_text' => 'Where is your hometown?',
+        ]);
+
+        $response = $this->postJson('/api/speaking/submit', [
+            'question_id' => $question->id,
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['answer_text']);
+    }
+
+    public function test_submit_rejects_nonexistent_question(): void
+    {
+        $response = $this->postJson('/api/speaking/submit', [
+            'question_id' => 99999,
+            'answer_text' => 'This is a valid answer with enough characters.',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['question_id']);
+    }
+
+    public function test_submit_rejects_answer_under_minimum_length(): void
+    {
+        $question = Question::create([
+            'part' => 1,
+            'topic' => 'Hometown',
+            'question_text' => 'Where is your hometown?',
+        ]);
+
+        $response = $this->postJson('/api/speaking/submit', [
+            'question_id' => $question->id,
+            'answer_text' => 'too short',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['answer_text']);
+    }
+
+    public function test_submit_rejects_answer_over_maximum_length(): void
+    {
+        $question = Question::create([
+            'part' => 1,
+            'topic' => 'Hometown',
+            'question_text' => 'Where is your hometown?',
+        ]);
+
+        $response = $this->postJson('/api/speaking/submit', [
+            'question_id' => $question->id,
+            'answer_text' => str_repeat('a', 2001),
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['answer_text']);
+    }
+
+    public function test_submit_rejects_non_integer_question_id(): void
+    {
+        $response = $this->postJson('/api/speaking/submit', [
+            'question_id' => 'abc',
+            'answer_text' => 'This is a valid answer with enough characters.',
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['question_id']);
+    }
+
+    public function test_submit_still_saves_attempt_when_gemini_returns_invalid_data(): void
+    {
+        $question = Question::create([
+            'part' => 1,
+            'topic' => 'Hometown',
+            'question_text' => 'Where is your hometown?',
+        ]);
+
+        $this->mock(GeminiService::class, function ($mock) {
+            $mock->shouldReceive('evaluate')
+                ->once()
+                ->andReturn([
+                    'band_score' => null,
+                    'strengths' => [],
+                    'improvements' => [],
+                    'raw_feedback' => 'garbage output',
+                ]);
+        });
+
+        $response = $this->postJson('/api/speaking/submit', [
+            'question_id' => $question->id,
+            'answer_text' => 'This is a valid answer with enough characters.',
+        ]);
+
+        $response->assertCreated();
+
+        $this->assertDatabaseHas('attempts', [
+            'question_id' => $question->id,
+        ]);
+    }
+
+    public function test_submit_returns_201_when_gemini_throws_exception(): void
+    {
+        $question = Question::create([
+            'part' => 1,
+            'topic' => 'Hometown',
+            'question_text' => 'Where is your hometown?',
+        ]);
+
+        $this->mock(GeminiService::class, function ($mock) {
+            $mock->shouldReceive('evaluate')
+                ->once()
+                ->andThrow(new \RuntimeException('Gemini failed'));
+        });
+
+        $response = $this->postJson('/api/speaking/submit', [
+            'question_id' => $question->id,
+            'answer_text' => 'This is a valid answer with enough characters.',
+        ]);
+
+        $response->assertCreated()
+            ->assertJsonPath('message', 'Your answer was saved, but evaluation failed. Please try again later.');
+
+        $this->assertDatabaseHas('attempts', [
+            'question_id' => $question->id,
+        ]);
+    }
+
+    public function test_submit_guest_does_not_link_attempt_to_user(): void
+    {
+        $question = Question::create([
+            'part' => 1,
+            'topic' => 'Hometown',
+            'question_text' => 'Where is your hometown?',
+        ]);
+
+        $this->mock(GeminiService::class, function ($mock) {
+            $mock->shouldReceive('evaluate')->andReturn([
+                'band_score' => 6.0,
+                'strengths' => ['Clear'],
+                'improvements' => ['Detail'],
+                'raw_feedback' => 'Good.',
+            ]);
+        });
+
+        $this->postJson('/api/speaking/submit', [
+            'question_id' => $question->id,
+            'answer_text' => 'This is a valid answer with enough characters.',
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('attempts', [
+            'question_id' => $question->id,
+            'user_id' => null,
+        ]);
+    }
 }

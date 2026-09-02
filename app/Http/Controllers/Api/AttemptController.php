@@ -10,7 +10,7 @@ class AttemptController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $attempts = $request->user()
+        $attempts = $request->user('sanctum')
             ->attempts()
             ->with('question:id,part,topic,question_text')
             ->latest()

@@ -1,6 +1,6 @@
 <template>
   <div class="app-shell min-h-screen">
-    <section v-if="!token" class="auth-screen min-h-screen grid lg:grid-cols-[1.05fr_0.95fr]">
+    <section v-if="!isAuthed && !guestMode" class="auth-screen min-h-screen grid lg:grid-cols-[1.05fr_0.95fr]">
       <div class="auth-intro hidden lg:flex flex-col justify-between p-12 xl:p-20">
         <div class="brand-mark">
           <span class="brand-dot"></span>
@@ -45,6 +45,9 @@
             </button>
           </form>
 
+          <div class="auth-divider"><span>or</span></div>
+          <button class="ghost-button w-full" type="button" @click="enterGuest">Continue as guest</button>
+
           <button class="switch-button mt-7" type="button" @click="toggleAuthMode">
             {{ authMode === "login" ? "Don't have an account? Sign up" : "Already have an account? Sign in" }}
           </button>
@@ -60,18 +63,30 @@
           <nav class="space-y-1">
             <a class="nav-item nav-item-active" href="#overview"><span>Overview</span><span>01</span></a>
             <a class="nav-item" href="#practice"><span>New practice</span><span>02</span></a>
-            <a class="nav-item" href="#history"><span>History</span><span>03</span></a>
+            <a v-if="!guestMode" class="nav-item" href="#history"><span>History</span><span>03</span></a>
           </nav>
         </div>
         <div class="mt-auto hidden lg:block">
-          <div class="user-card">
-            <div class="avatar">{{ user?.name?.charAt(0)?.toUpperCase() }}</div>
-            <div class="min-w-0">
-              <p class="truncate text-sm font-semibold">{{ user?.name }}</p>
-              <p class="truncate text-xs text-(--muted)">{{ user?.email }}</p>
+          <template v-if="guestMode">
+            <div class="guest-card">
+              <div class="avatar avatar-guest">G</div>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-semibold">Guest session</p>
+                <p class="truncate text-xs text-(--muted)">Progress not saved</p>
+              </div>
             </div>
-          </div>
-          <button class="logout-button mt-5" type="button" @click="logout">Sign out <span>↗</span></button>
+            <button class="logout-button mt-5" type="button" @click="exitGuest">Sign in to save <span>↗</span></button>
+          </template>
+          <template v-else>
+            <div class="user-card">
+              <div class="avatar">{{ user?.name?.charAt(0)?.toUpperCase() }}</div>
+              <div class="min-w-0">
+                <p class="truncate text-sm font-semibold">{{ user?.name }}</p>
+                <p class="truncate text-xs text-(--muted)">{{ user?.email }}</p>
+              </div>
+            </div>
+            <button class="logout-button mt-5" type="button" @click="logout">Sign out <span>↗</span></button>
+          </template>
         </div>
       </aside>
 
@@ -79,12 +94,14 @@
         <header class="mb-10 flex items-start justify-between gap-4" id="overview">
           <div>
             <p class="eyebrow mb-3">{{ todayLabel }}</p>
-            <h1 class="display-title text-4xl sm:text-5xl">Good to see you,<br /><em>{{ firstName }}.</em></h1>
+            <h1 class="display-title text-4xl sm:text-5xl">
+              {{ guestMode ? "Practice" : "Good to see you," }}<br /><em>{{ guestMode ? "without limits." : firstName + "." }}</em>
+            </h1>
           </div>
-          <button class="mobile-logout lg:hidden" type="button" @click="logout">Sign out</button>
+          <button class="mobile-logout lg:hidden" type="button" @click="guestMode ? exitGuest() : logout()">{{ guestMode ? "Sign in" : "Sign out" }}</button>
         </header>
 
-        <div class="stats-grid mb-10">
+        <div v-if="!guestMode" class="stats-grid mb-10">
           <div class="stat-card stat-card-accent">
             <p class="eyebrow">Total attempts</p>
             <p class="stat-number">{{ attempts.length }}</p>
@@ -102,42 +119,10 @@
           </div>
         </div>
 
-        <div class="content-grid">
-          <section id="practice" class="practice-card">
-            <div class="mb-8 flex items-start justify-between gap-4">
-              <div>
-                <p class="eyebrow mb-3">New session</p>
-                <h2 class="section-title">Practice prompt</h2>
-              </div>
-              <span class="step-label">01 / 01</span>
-            </div>
-            <form @submit.prevent="submit">
-              <label class="field-label">
-                Choose a question
-                <select v-model="selectedQuestionId" class="field-input" required>
-                  <option value="" disabled>Select a prompt</option>
-                  <option v-for="q in questions" :key="q.id" :value="q.id">Part {{ q.part }} · {{ q.topic }}</option>
-                </select>
-              </label>
-              <div v-if="selectedQuestion" class="prompt-box mt-5">
-                <span class="prompt-number">Prompt</span>
-                <p>{{ selectedQuestion.question_text }}</p>
-              </div>
-              <label class="field-label mt-6">
-                Your answer
-                <textarea v-model="answer" class="field-input answer-input" rows="7" placeholder="Write your speaking answer here..." required></textarea>
-              </label>
-              <div class="mt-3 flex items-center justify-between text-xs text-(--muted)">
-                <span>Minimum 20 characters</span><span>{{ answer.length }} / 2000</span>
-              </div>
-              <p v-if="error" class="notice-error mt-5">{{ error }}</p>
-              <button class="primary-button mt-7" type="submit" :disabled="loading">
-                {{ loading ? "Evaluating..." : "Evaluate answer" }} <span aria-hidden="true">→</span>
-              </button>
-            </form>
-          </section>
+        <div class="content-grid" :class="{ 'content-grid-single': guestMode }">
+          <PracticeForm :questions="questions" :loading="loading" @submit="submitAnswer" />
 
-          <section id="history" class="history-section">
+          <section v-if="!guestMode" id="history" class="history-section">
             <div class="mb-5 flex items-end justify-between">
               <div><p class="eyebrow mb-3">Your progress</p><h2 class="section-title">Recent attempts</h2></div>
               <span class="text-xs text-(--muted)">{{ attempts.length }} total</span>
@@ -151,20 +136,10 @@
               </button>
             </div>
 
-            <div v-if="selectedAttempt" class="feedback-panel mt-8">
-              <div class="flex items-start justify-between gap-4 border-b border-(--line) pb-6">
-                <div><p class="eyebrow mb-3">Evaluation detail</p><h2 class="section-title">Your feedback</h2></div>
-                <div class="score-stamp"><span>Band</span><strong>{{ selectedAttempt.band_score ?? "—" }}</strong></div>
-              </div>
-              <div class="mt-6"><p class="eyebrow mb-2">Prompt</p><p class="leading-6 text-(--ink)">{{ selectedAttempt.question?.question_text }}</p></div>
-              <div class="mt-6"><p class="eyebrow mb-2">Your answer</p><p class="answer-quote">“{{ selectedAttempt.answer_text }}”</p></div>
-              <div class="feedback-columns mt-7">
-                <div><p class="eyebrow mb-3">Strengths</p><ul class="feedback-list"><li v-for="(item, index) in selectedAttempt.strengths || []" :key="index">{{ item }}</li></ul></div>
-                <div><p class="eyebrow mb-3">Improve next</p><ul class="feedback-list feedback-list-improve"><li v-for="(item, index) in selectedAttempt.improvements || []" :key="index">{{ item }}</li></ul></div>
-              </div>
-              <div class="gemini-note mt-7"><p class="eyebrow mb-2">Examiner note</p><p class="leading-6">{{ selectedAttempt.raw_feedback || "No additional note available." }}</p></div>
-            </div>
+            <FeedbackPanel v-if="selectedAttempt" :attempt="selectedAttempt" />
           </section>
+
+          <FeedbackPanel v-if="guestMode && selectedAttempt" :attempt="selectedAttempt" />
         </div>
       </main>
     </section>
@@ -173,22 +148,23 @@
 
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import FeedbackPanel from "./components/FeedbackPanel.vue";
+import PracticeForm from "./components/PracticeForm.vue";
 
 const token = ref(localStorage.getItem("token") || "");
+const guestMode = ref(false);
 const user = ref(null);
 const questions = ref([]);
 const attempts = ref([]);
 const selectedAttempt = ref(null);
-const selectedQuestionId = ref("");
-const answer = ref("");
 const error = ref("");
 const loading = ref(false);
 const authLoading = ref(false);
 const authMode = ref("login");
 const authForm = ref({ name: "", email: "", password: "" });
 
+const isAuthed = computed(() => !!token.value);
 const firstName = computed(() => user.value?.name?.split(" ")[0] || "there");
-const selectedQuestion = computed(() => questions.value.find((question) => String(question.id) === String(selectedQuestionId.value)));
 const latestScore = computed(() => attempts.value[0]?.band_score ?? "—");
 const todayLabel = computed(() => new Intl.DateTimeFormat("en-US", { weekday: "long", month: "long", day: "numeric" }).format(new Date()));
 
@@ -199,6 +175,18 @@ function authHeaders() {
 function toggleAuthMode() {
   error.value = "";
   authMode.value = authMode.value === "login" ? "register" : "login";
+}
+
+function enterGuest() {
+  error.value = "";
+  guestMode.value = true;
+  user.value = null;
+  selectedAttempt.value = null;
+}
+
+function exitGuest() {
+  guestMode.value = false;
+  selectedAttempt.value = null;
 }
 
 async function auth() {
@@ -212,6 +200,7 @@ async function auth() {
     if (!response.ok) { error.value = json.message || "Unable to continue."; return; }
     token.value = json.data.token;
     user.value = json.data.user;
+    guestMode.value = false;
     localStorage.setItem("token", token.value);
     authForm.value = { name: "", email: "", password: "" };
     await loadAttempts();
@@ -222,6 +211,7 @@ async function logout() {
   try { await fetch("/api/logout", { method: "POST", headers: authHeaders() }); } catch { }
   token.value = "";
   user.value = null;
+  guestMode.value = false;
   attempts.value = [];
   selectedAttempt.value = null;
   localStorage.removeItem("token");
@@ -233,17 +223,14 @@ async function loadAttempts() {
   if (response.ok) { attempts.value = (await response.json()).data; }
 }
 
-async function submit() {
-  error.value = "";
-  if (!selectedQuestionId.value || answer.value.length < 20) { error.value = "Choose a prompt and write at least 20 characters."; return; }
+async function submitAnswer(payload) {
   loading.value = true;
   try {
-    const response = await fetch("/api/speaking/submit", { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify({ question_id: selectedQuestionId.value, answer_text: answer.value }) });
+    const response = await fetch("/api/speaking/submit", { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(payload) });
     const json = await response.json();
     if (!response.ok) { error.value = json.message || "Unable to evaluate this answer."; return; }
-    answer.value = "";
+    selectedAttempt.value = json.data;
     await loadAttempts();
-    selectedAttempt.value = attempts.value.find((attempt) => attempt.id === json.data.id) || json.data;
   } catch { error.value = "Unable to connect to the server."; } finally { loading.value = false; }
 }
 

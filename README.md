@@ -7,15 +7,18 @@ Backend kecil untuk latihan IELTS Speaking. User melihat daftar pertanyaan, meng
 - `GET /api/questions` — daftar pertanyaan speaking (Part 1/2/3 + topic)
 - `POST /api/speaking/submit` — kirim jawaban teks, divalidasi, disimpan, lalu dievaluasi Gemini
 - Register / login / logout (Sanctum) + history attempt per user
-- Dashboard Vue (login, daftar attempt, detail feedback, form submit)
-- Automated test (panggilan Gemini di-mock, tanpa internet)
+- Guest mode: latihan & evaluasi tanpa login (attempt tidak tersimpan ke akun)
+- Dashboard Vue (login, guest mode, daftar attempt, detail feedback, form submit)
+- Automated test (panggilan Gemini di-mock, tanpa internet), termasuk negative test
 
 ## Dashboard (Vue)
 
 - Login/register untuk menyimpan attempt per user
+- Guest mode ("Continue as guest") untuk latihan tanpa akun
 - Menampilkan daftar attempt/result speaking milik user
 - Klik attempt untuk melihat detail feedback (band, strengths, improvements, raw_feedback dari Gemini)
 - Form submit jawaban yang langsung tersimpan ke riwayat user
+- Terdiri dari komponen reusable: `PracticeForm` dan `FeedbackPanel`
 
 ## Tech Stack
 
@@ -66,6 +69,18 @@ php artisan test
 ```
 
 Test berjalan di SQLite in-memory (tidak menyentuh MySQL), dan panggilan Gemini di-mock sehingga tidak memerlukan internet.
+
+Terdapat 34 test yang mencakup:
+
+- **Feature test** — daftar pertanyaan, submit jawaban, validasi payload, guest mode, dan auth (register/login/isolasi data antar user).
+- **Unit test** — parsing respons Gemini (JSON valid, markdown, teks bebas, missing keys, respons kosong) dan error handling.
+- **Negative test** — payload tidak valid, kredensial salah, endpoint tanpa token, serta respons Gemini yang tidak sesuai.
+
+### Lint
+
+```bash
+vendor/bin/pint
+```
 
 ## Skema Database
 
@@ -153,6 +168,8 @@ Response sukses (201):
 ```
 
 Dokumentasi API lengkap (contoh request & response untuk semua endpoint) tersedia di [`docs/API.md`](docs/API.md).
+
+Penjelasan alur sistem (bagaimana data diproses) tersedia di [`docs/SYSTEM_FLOW.md`](docs/SYSTEM_FLOW.md).
 
 Koleksi Postman siap import tersedia di [`docs/postman_collection.json`](docs/postman_collection.json).
 
