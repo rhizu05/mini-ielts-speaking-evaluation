@@ -207,7 +207,49 @@ php artisan test
 
 ---
 
-## 7. Poin Penting untuk Interview
+## 7. Kelebihan & Kekurangan Arsitektur
+
+Alasan utama pemilihan arsitektur: **separation of concerns** — setiap lapisan punya satu tanggung jawab, supaya kode mudah dipelihara, di-test, dan dikembangkan.
+
+### 7.1 MVC (Model-View-Controller)
+
+- **Kelebihan:** struktur jelas dan standar; perubahan UI tidak mengganggu logika backend.
+- **Kekurangan:** controller bisa menjadi terlalu besar jika tidak disiplin (diatasi dengan service layer + FormRequest).
+
+### 7.2 Service layer (`GeminiService`)
+
+- **Kelebihan:** mudah di-mock saat test (tanpa internet), mudah diganti provider AI, controller tetap bersih.
+- **Kekurangan:** menambah satu lapisan abstraksi (terasa "lebih ribet" untuk project kecil).
+
+### 7.3 FormRequest untuk validasi
+
+- **Kelebihan:** aturan validasi terpusat; gagal validasi otomatis membalas 422.
+- **Kekurangan:** satu file per request (banyak file jika endpoint banyak).
+
+### 7.4 `user_id` nullable (guest mode)
+
+- **Kelebihan:** UX lebih ramah (langsung bisa latihan tanpa daftar); memenuhi "login opsional".
+- **Kekurangan:** data guest tidak terikat akun (sulit dianalisis per user); perlu handling riwayat khusus.
+
+### 7.5 Simpan dulu → evaluasi → update
+
+- **Kelebihan:** anti data-loss — jawaban tetap tersimpan walau Gemini gagal.
+- **Kekurangan:** ada kondisi attempt "tersimpan tapi belum dievaluasi" (kolom hasil null) yang harus ditangani frontend.
+
+### 7.6 Token murni (Sanctum bearer) vs cookie/session
+
+- **Kelebihan:** stateless — cocok untuk API yang dipanggil dari mana saja (Postman, curl, mobile); sederhana di-test.
+- **Kekurangan:** token di localStorage lebih rentan XSS. Cookie HttpOnly lebih aman dari XSS, tetapi lebih rumit (CORS/CSRF).
+- **Catatan interview:** untuk skala demo/sederhana token murni lebih praktis; untuk produksi berisiko tinggi bisa pindah ke cookie HttpOnly.
+
+### 7.7 Frontend & backend satu repo
+
+- **Kelebihan:** simpel, praktis dijalankan (`php artisan serve` + `npm run dev`).
+- **Kekurangan:** untuk tim besar, frontend & backend biasanya dipisah (repo/domain berbeda) agar bisa develop/deploy independen.
+
+---
+
+## 8. Poin Penting untuk Interview
 
 | Topik | Jawaban singkat |
 |-------|-----------------|

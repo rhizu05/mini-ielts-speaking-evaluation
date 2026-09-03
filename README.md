@@ -171,6 +171,10 @@ Dokumentasi API lengkap (contoh request & response untuk semua endpoint) tersedi
 
 Penjelasan alur sistem (bagaimana data diproses) tersedia di [`docs/SYSTEM_FLOW.md`](docs/SYSTEM_FLOW.md).
 
+Panduan memahami sistem dari nol (bahasa sederhana) tersedia di [`docs/PANDUAN_PEMULA.md`](docs/PANDUAN_PEMULA.md).
+
+Code review singkat (kelebihan & catatan perbaikan) tersedia di [`docs/CODE_REVIEW.md`](docs/CODE_REVIEW.md).
+
 Koleksi Postman siap import tersedia di [`docs/postman_collection.json`](docs/postman_collection.json).
 
 ## Konfigurasi Gemini

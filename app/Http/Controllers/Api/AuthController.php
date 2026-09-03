@@ -62,7 +62,7 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()?->currentAccessToken()?->delete();
+        $request->user('sanctum')?->currentAccessToken()?->delete();
 
         return response()->json([
             'message' => 'Logged out successfully.',
@@ -72,7 +72,7 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         return response()->json([
-            'data' => $request->user(),
+            'data' => $request->user('sanctum'),
         ]);
     }
 }

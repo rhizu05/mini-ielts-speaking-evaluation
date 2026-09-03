@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\SpeakingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/questions', [QuestionController::class, 'index']);
-Route::post('/speaking/submit', [SpeakingController::class, 'submit']);
+Route::post('/speaking/submit', [SpeakingController::class, 'submit'])->middleware('throttle:10,1');
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);

@@ -21,6 +21,7 @@ class GeminiService
 
         $response = Http::withHeaders(['x-goog-api-key' => $this->apiKey])
             ->acceptJson()
+            ->timeout(30)
             ->post("{$this->baseUrl}/models/{$this->model}:generateContent", [
                 'contents' => [
                     [
@@ -75,7 +76,7 @@ PROMPT;
         }
 
         return [
-            'band_score' => (float) ($data['band_score'] ?? 0),
+            'band_score' => array_key_exists('band_score', $data) ? (float) $data['band_score'] : null,
             'strengths' => array_values(array_filter((array) ($data['strengths'] ?? []))),
             'improvements' => array_values(array_filter((array) ($data['improvements'] ?? []))),
             'raw_feedback' => $data['feedback'] ?? $raw,
